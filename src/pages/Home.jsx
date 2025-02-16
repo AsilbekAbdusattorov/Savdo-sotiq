@@ -76,7 +76,7 @@ const Home = () => {
   // 📌 JSON-dan mahsulot ma'lumotlarini olish
   const fetchProductData = async (barcode) => {
     try {
-      const response = await fetch("/products.json"); // Mahsulotlar ro‘yxati
+      const response = await fetch("https://savdo-sotiq.onrender.com/products"); // Mahsulotlar ro‘yxatini serverdan olish
       const data = await response.json();
       const foundProduct = data.find((item) => item.barcode === barcode);
       if (foundProduct) {
@@ -108,7 +108,7 @@ const Home = () => {
     };
 
     try {
-      const response = await fetch("/sales.json", {
+      const response = await fetch("https://savdo-sotiq.onrender.com/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(saleData),

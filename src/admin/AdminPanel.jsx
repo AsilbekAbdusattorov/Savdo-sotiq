@@ -56,7 +56,7 @@ const AdminPanel = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/add-product", {
+      const response = await fetch("https://savdo-sotiq.onrender.com/add-product", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(product),

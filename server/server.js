@@ -6,6 +6,7 @@ import path from "path";
 const app = express();
 const __dirname = path.resolve();
 const filePath = path.join(__dirname, "products.json");
+const salesPath = path.join(__dirname, "sales.json");
 
 // 📌 CORS konfiguratsiyasi
 app.use(cors({ origin: "*", methods: ["GET", "POST"] }));
@@ -20,6 +21,11 @@ if (!fs.existsSync(filePath)) {
   fs.writeFileSync(filePath, "[]", "utf-8");
 }
 
+// 📌 Sotuvlarni saqlash uchun JSON faylni tekshirish
+if (!fs.existsSync(salesPath)) {
+  fs.writeFileSync(salesPath, "[]", "utf-8");
+}
+
 // 📌 JSON fayldan o‘qish va yozish
 const readProducts = () => {
   const data = fs.readFileSync(filePath, "utf-8");
@@ -30,29 +36,32 @@ const writeProducts = (products) => {
   fs.writeFileSync(filePath, JSON.stringify(products, null, 2), "utf-8");
 };
 
+const readSales = () => {
+  const data = fs.readFileSync(salesPath, "utf-8");
+  return data ? JSON.parse(data) : [];
+};
+
+const writeSales = (sales) => {
+  fs.writeFileSync(salesPath, JSON.stringify(sales, null, 2), "utf-8");
+};
+
 // 🏠 **Asosiy yo‘nalish**
 app.get("/", (req, res) => {
   res.send("✅ Server ishlayapti!");
 });
 
-// 🛒 Mahsulot qo‘shish
-app.post("/add-product", (req, res) => {
-  const { name, barcode, price, image } = req.body;
-
-  if (!name || !barcode || !price || !image) {
-    return res.status(400).json({ message: "Barcha maydonlarni to‘ldiring" });
-  }
-
-  const products = readProducts();
-  products.push({ name, barcode, price, image });
-  writeProducts(products);
-
-  res.status(201).json({ message: "Mahsulot muvaffaqiyatli qo‘shildi" });
-});
-
-// 📌 Qo‘shilgan barcha mahsulotlarni olish
+// 🛒 Mahsulotlarni olish
 app.get("/products", (req, res) => {
   res.json(readProducts());
+});
+
+// 📦 Sotuvlarni saqlash
+app.post("/sales", (req, res) => {
+  const saleData = req.body;
+  const sales = readSales();
+  sales.push(saleData);
+  writeSales(sales);
+  res.status(201).json({ message: "Sotuv muvaffaqiyatli saqlandi" });
 });
 
 // 📌 **Barcha boshqa yo‘nalishlar uchun 404 xato**
