@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 
 const Home = () => {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const [barcode, setBarcode] = useState("");
 
   useEffect(() => {
@@ -10,20 +9,22 @@ const Home = () => {
     loadQuagga();
   }, []);
 
+  // Kamera ishga tushirish
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
+        video: { facingMode: "environment" }, // Orqa kamera
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
     } catch (error) {
-      console.error("Kamera xatosi:", error);
-      alert("Kamera ochib bo‘lmadi!");
+      console.error("Kameraga ruxsat berilmadi:", error);
+      alert("Iltimos, kameraga ruxsat bering!");
     }
   };
 
+  // QuaggaJS yuklash
   const loadQuagga = () => {
     const script = document.createElement("script");
     script.src = "https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js";
@@ -31,6 +32,7 @@ const Home = () => {
     document.body.appendChild(script);
   };
 
+  // QuaggaJS boshlash
   const initQuagga = () => {
     if (!window.Quagga) return;
 
@@ -39,36 +41,49 @@ const Home = () => {
         inputStream: {
           name: "Live",
           type: "LiveStream",
-          target: videoRef.current,
+          target: videoRef.current, // video tagga oqim
           constraints: {
-            facingMode: "environment",
+            facingMode: "environment", // Orqa kamerani tanlash
           },
+          area: { // Bu yerda kamera oynasining o‘lchamini belgilash mumkin
+            top: "0%",    // Kamera yuqori qismidan boshlab
+            left: "0%",
+            right: "0%",
+            bottom: "0%",
+          },
+          willReadFrequently: true, // QuaggaJS tez ishlashi uchun
         },
         decoder: {
-          readers: ["ean_reader", "code_128_reader"], // EAN va Code-128 formatlarini o‘qiydi
+          readers: ["ean_reader", "code_128_reader"], // Skanner turini belgilash
+        },
+        locate: true, // QR kod yoki barcode joylashuvini aniqlashni yaxshilash
+        locator: {
+          patchSize: "medium", // Patrondagi tasvirni yaxshilash
+          halfSample: true, // Tasvirni yarmiga qisqartirish
         },
       },
       (err) => {
         if (err) {
-          console.error("Quagga xatosi:", err);
+          console.error("QuaggaJS xatosi:", err);
           return;
         }
         window.Quagga.start();
       }
     );
 
+    // 📌 Skaner aniqlanganda natijani olish
     window.Quagga.onDetected((result) => {
-      setBarcode(result.codeResult.code);
-      window.Quagga.stop(); // Skanerlash tugagach to‘xtatish
+      setBarcode(result.codeResult.code); // Barcode ni olish
+      window.Quagga.stop(); // Skanning tugatish
     });
   };
 
   return (
     <section className="max-w-lg mx-auto mt-10 p-6 border rounded-lg shadow-lg bg-white">
-      <h2 className="text-2xl font-semibold mb-5 text-center text-gray-700">Barcode Skanner</h2>
+      <h2 className="text-2xl font-semibold mb-5 text-center text-gray-700">📷 Barcode Skanner</h2>
 
       {/* Kamera */}
-      <video ref={videoRef} className="w-full h-60 border rounded-lg shadow-sm bg-black"></video>
+      <video ref={videoRef} className="w-full h-60 border rounded-lg shadow-sm bg-black" autoPlay muted></video>
 
       {/* Skaner natijasi */}
       {barcode && (
