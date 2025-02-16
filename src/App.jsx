@@ -4,7 +4,7 @@ import { Route, createBrowserRouter, createRoutesFromElements, RouterProvider } 
 // pages
 import Home from './pages/Home'
 import MainLayout from './layouts/MainLayout'
-import AdminPanel from '../admin/AdminPanel'
+import AdminPanel from '../src/admin/AdminPanel'
 
 const App = () => {
   const router = createBrowserRouter(
