@@ -1,14 +1,19 @@
 import express from "express";
 import cors from "cors";
 import fs from "fs";
+import path from "path";
 
 const app = express();
-const filePath = "products.json";
+const __dirname = path.resolve();
+const filePath = path.join(__dirname, "products.json");
 
 // 📌 CORS konfiguratsiyasi
 app.use(cors({ origin: "*", methods: ["GET", "POST"] }));
 app.use(express.json({ limit: "10mb" })); 
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 📌 Statik fayllarni qo‘llab-quvvatlash
+app.use(express.static(path.join(__dirname, "public")));
 
 // 📌 Mahsulotlarni saqlash uchun JSON faylni tekshirish
 if (!fs.existsSync(filePath)) {
@@ -24,6 +29,11 @@ const readProducts = () => {
 const writeProducts = (products) => {
   fs.writeFileSync(filePath, JSON.stringify(products, null, 2), "utf-8");
 };
+
+// 🏠 **Asosiy yo‘nalish**
+app.get("/", (req, res) => {
+  res.send("✅ Server ishlayapti!");
+});
 
 // 🛒 Mahsulot qo‘shish
 app.post("/add-product", (req, res) => {
@@ -43,6 +53,11 @@ app.post("/add-product", (req, res) => {
 // 📌 Qo‘shilgan barcha mahsulotlarni olish
 app.get("/products", (req, res) => {
   res.json(readProducts());
+});
+
+// 📌 **Barcha boshqa yo‘nalishlar uchun 404 xato**
+app.use((req, res) => {
+  res.status(404).json({ message: "Sahifa topilmadi" });
 });
 
 // 📌 Serverni ishga tushirish
