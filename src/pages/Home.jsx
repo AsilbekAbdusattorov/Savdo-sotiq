@@ -3,6 +3,9 @@ import React, { useEffect, useRef, useState } from "react";
 const Home = () => {
   const videoRef = useRef(null);
   const [barcode, setBarcode] = useState("");
+  const [product, setProduct] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [totalPrice, setTotalPrice] = useState(0);
 
   useEffect(() => {
     startCamera();
@@ -13,7 +16,7 @@ const Home = () => {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" }, // Orqa kamera
+        video: { facingMode: "environment" },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -41,26 +44,16 @@ const Home = () => {
         inputStream: {
           name: "Live",
           type: "LiveStream",
-          target: videoRef.current, // video tagga oqim
+          target: videoRef.current,
           constraints: {
-            facingMode: "environment", // Orqa kamerani tanlash
+            facingMode: "environment",
           },
-          area: { // Bu yerda kamera oynasining o‘lchamini belgilash mumkin
-            top: "0%",    // Kamera yuqori qismidan boshlab
-            left: "0%",
-            right: "0%",
-            bottom: "0%",
-          },
-          willReadFrequently: true, // QuaggaJS tez ishlashi uchun
+          willReadFrequently: true,
         },
         decoder: {
-          readers: ["ean_reader", "code_128_reader"], // Skanner turini belgilash
+          readers: ["ean_reader", "code_128_reader"],
         },
-        locate: true, // QR kod yoki barcode joylashuvini aniqlashni yaxshilash
-        locator: {
-          patchSize: "medium", // Patrondagi tasvirni yaxshilash
-          halfSample: true, // Tasvirni yarmiga qisqartirish
-        },
+        locate: true,
       },
       (err) => {
         if (err) {
@@ -71,11 +64,69 @@ const Home = () => {
       }
     );
 
-    // 📌 Skaner aniqlanganda natijani olish
+    // Skanerlangan barcode
     window.Quagga.onDetected((result) => {
-      setBarcode(result.codeResult.code); // Barcode ni olish
-      window.Quagga.stop(); // Skanning tugatish
+      const scannedBarcode = result.codeResult.code;
+      setBarcode(scannedBarcode);
+      fetchProductData(scannedBarcode);
+      window.Quagga.stop();
     });
+  };
+
+  // 📌 JSON-dan mahsulot ma'lumotlarini olish
+  const fetchProductData = async (barcode) => {
+    try {
+      const response = await fetch("/products.json"); // Mahsulotlar ro‘yxati
+      const data = await response.json();
+      const foundProduct = data.find((item) => item.barcode === barcode);
+      if (foundProduct) {
+        setProduct(foundProduct);
+        setTotalPrice(foundProduct.price * quantity);
+      } else {
+        alert("Mahsulot topilmadi!");
+      }
+    } catch (error) {
+      console.error("JSON o‘qishda xatolik:", error);
+    }
+  };
+
+  // 🔄 Narxni yangilash
+  const handleQuantityChange = (e) => {
+    const qty = parseInt(e.target.value, 10);
+    setQuantity(qty);
+    setTotalPrice(product.price * qty);
+  };
+
+  // 📌 Sotish tugmasi bosilganda JSON-ga yozish
+  const handleSell = async () => {
+    const saleData = {
+      barcode: product.barcode,
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      total: totalPrice,
+    };
+
+    try {
+      const response = await fetch("/sales.json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(saleData),
+      });
+
+      if (response.ok) {
+        alert("Mahsulot sotildi!");
+        setBarcode("");
+        setProduct(null);
+        setQuantity(1);
+        setTotalPrice(0);
+        startCamera(); // Kamera qayta ishga tushsin
+      } else {
+        alert("Xatolik yuz berdi, qayta urinib ko‘ring!");
+      }
+    } catch (error) {
+      console.error("Ma'lumotni saqlashda xatolik:", error);
+    }
   };
 
   return (
@@ -86,10 +137,34 @@ const Home = () => {
       <video ref={videoRef} className="w-full h-60 border rounded-lg shadow-sm bg-black" autoPlay muted></video>
 
       {/* Skaner natijasi */}
-      {barcode && (
+      {product && (
         <div className="mt-4 p-3 border rounded-lg bg-gray-100">
-          <h3 className="text-lg font-semibold">Topilgan barcode:</h3>
-          <p className="text-xl font-bold text-blue-600">{barcode}</p>
+          <h3 className="text-lg font-semibold">{product.name}</h3>
+          <img src={product.image} alt={product.name} className="w-full h-40 object-cover rounded-lg mt-2" />
+          <p className="text-xl font-bold text-blue-600">Narxi: {product.price} so‘m</p>
+
+          {/* Nechta sotib olish */}
+          <label className="block mt-2">
+            <span className="text-gray-600">Soni:</span>
+            <input
+              type="number"
+              value={quantity}
+              min="1"
+              className="w-full p-2 border rounded-lg"
+              onChange={handleQuantityChange}
+            />
+          </label>
+
+          {/* Jami narx */}
+          <p className="text-lg font-semibold mt-2">Jami: {totalPrice} so‘m</p>
+
+          {/* Sotish tugmasi */}
+          <button
+            onClick={handleSell}
+            className="w-full mt-3 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition"
+          >
+            ✅ Sotish
+          </button>
         </div>
       )}
     </section>
